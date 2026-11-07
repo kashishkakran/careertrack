@@ -64,7 +64,16 @@ def create_demo_user():
     finally:
         conn.close()
 
-def add_application(user_id, company, role, status, date_applied):
+def add_application(
+    user_id, 
+    company, 
+    role, 
+    status, 
+    date_applied, 
+    job_url="", 
+    notes=""
+):
+    
     conn = get_connection()
 
     try:
@@ -72,11 +81,29 @@ def add_application(user_id, company, role, status, date_applied):
             INSERT INTO applications
             (user_id, company, role, status, date_applied)
             VALUES (?, ?, ?, ?, ?)
-        """, (user_id, company, role, status, date_applied))
+        """, (user_id, company, role, status, date_applied, job_url, notes))
 
         conn.commit()
 
-        print("Application saved successfully!")
+        return cursor.lastrowid
+
+    finally:
+        conn.close()
+
+def update_application_status(user_id, application_id, new_status):
+    conn = get_connection()
+    
+    try:
+        cursor = conn.execute("""
+            UPDATE applications
+            SET status = ?
+                updated at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+        """, (new_status, application_id, user_id))
+
+        conn.commit()
+
+        return cursor.rowcount > 0
 
     finally:
         conn.close()
@@ -114,4 +141,7 @@ def get_applications(user_id):
 
     finally:
         conn.close()
+
+    applications = get_applications(user_id)
+    print(applications)
 
