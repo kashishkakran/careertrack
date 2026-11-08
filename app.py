@@ -5,7 +5,8 @@ from database import (
     create_demo_user, 
     get_applications, 
     add_application,
-    update_application_status
+    update_application_status,
+    update_application_action
 )
 
 st.set_page_config(
@@ -113,6 +114,52 @@ elif page == "My Applications":
     else:
         st.info("No matching applications found.")
 
+    st.divider()
+    st.subheader("Update Application Status")
+
+    if applications:
+
+        application_options = {
+            f"{app['company']} = {app['role']} (#{app['id']})": app
+            for app in applications
+        }
+
+        selected_label = st.selectbox(
+            "Select an application",
+            list(application_options.keys())
+        )
+
+        selected_app = application_options[selected_label]
+
+        statuses = [
+            "Saved",
+            "Applied",
+            "Assessment",
+            "Interview",
+            "Offer",
+            "Rejected"
+        ]
+
+        new_status = st.selectbox(
+            "New status",
+            statuses,
+            index=statuses.index(selected_app["status"])
+        )
+
+        if st.button("Update Status", type="primary"):
+            
+            updated = update_application_status(
+                user_id,
+                selected_app["id"],
+                new_status
+            )
+
+            if updated:
+                st.success("Application status updated!")
+                st.rerun()
+            else:
+                st.error("Application could not be updated.")
+
     if applications:
         st.dataframe(
             applications,
@@ -140,6 +187,62 @@ elif page == "My Applications":
             app for app in filtered_applications
             if app["status"] == status_filter
         ]
+
+    st.divider()
+    st.subheader("Manage Next Actions")
+
+    if applications:
+
+        action_options = {
+            f"{app['company']} - {app['role']} (#{app['id']})": app
+            for app in applications
+        }
+
+        selected_action_label = st.selectbox(
+            "Choose an application",
+            list(action_options.keys()),
+            key="action-application"
+        )
+
+        selected_action_app = action_options[selected_action_label]
+
+        with st.form("next_action_form"):
+            next_action = st.text_input(
+                "What's your next action",
+                value=selected_action_app["next_action"] or "",
+                placeholder="e.g. Follow up with recruiter"
+            )
+
+            deadline = st.date_input(
+                "When is it due",
+                value=date.fromisoformat(selected_action_app["deadline"])
+                if selected_action_app["deadline"]
+                else date.today()
+            )
+
+            save_action = st.form_submit_button(
+                "Save Next Action",
+                type="primary"
+            )
+
+        if save_action:
+
+            if not next_action.strip():
+                st.error("Please enter a next action.")
+            else:
+                updated = update_application_action(
+                    user_id,
+                    selected_action_app["id"],
+                    next_action.strip(),
+                    deadline.isoformat()
+                )
+
+                if updated:
+                    st.session_state["Next action saved!"] = True
+                    st.rerun()
+                else:
+                    st.error("Could not save next action.")
+
 
 elif page == "Add Application":
     st.subheader("Add a New Application")

@@ -96,8 +96,8 @@ def update_application_status(user_id, application_id, new_status):
     try:
         cursor = conn.execute("""
             UPDATE applications
-            SET status = ?
-                updated at = CURRENT_TIMESTAMP
+            SET status = ?,
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND user_id = ?
         """, (new_status, application_id, user_id))
 
@@ -107,6 +107,26 @@ def update_application_status(user_id, application_id, new_status):
 
     finally:
         conn.close()
+
+
+def update_application_action(user_id, application_id, next_action, deadline):
+    conn = get_connection()
+
+    try:
+        cursor = conn.execute("""
+            UPDATE applications
+            SET next_action = ?,
+                deadline = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ?
+        """, (next_action, deadline, application_id, user_id))
+
+        conn.commit()
+        return cursor.rowcount > 0
+
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     init_db()
@@ -131,7 +151,7 @@ def get_applications(user_id):
         conn.row_factory = sqlite3.Row
 
         cursor = conn.execute("""
-            SELECT id, company, role, status, date_applied
+            SELECT id, company, role, status, date_applied, next_action, deadline
             FROM applications
             WHERE user_id = ?
             ORDER BY id DESC
